@@ -11,7 +11,9 @@ class SignalRecord(Base):
     __tablename__ = "signal_records"
     __table_args__ = (UniqueConstraint("date", "stock_id", "signal_type"),)
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
     date: Mapped[date] = mapped_column(Date, nullable=False)
     stock_id: Mapped[str] = mapped_column(String(10), nullable=False)
     stock_name: Mapped[str | None] = mapped_column(String(100))

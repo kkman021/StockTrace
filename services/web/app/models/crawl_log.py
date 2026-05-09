@@ -9,7 +9,9 @@ from app.database import Base
 class CrawlLog(Base):
     __tablename__ = "crawl_logs"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
     etf_id: Mapped[str] = mapped_column(String(10), ForeignKey("etf_list.etf_id"), nullable=False)
     crawl_date: Mapped[date] = mapped_column(Date, nullable=False)
     crawler_used: Mapped[str | None] = mapped_column(String(20))

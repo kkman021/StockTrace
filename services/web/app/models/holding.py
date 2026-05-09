@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, Numeric, String, UniqueConstraint, func
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -11,7 +11,9 @@ class HoldingRecord(Base):
     __tablename__ = "holding_records"
     __table_args__ = (UniqueConstraint("etf_id", "date", "stock_id"),)
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
     etf_id: Mapped[str] = mapped_column(String(10), ForeignKey("etf_list.etf_id"), nullable=False)
     date: Mapped[date] = mapped_column(Date, nullable=False)
     stock_id: Mapped[str] = mapped_column(String(10), nullable=False)

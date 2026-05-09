@@ -12,7 +12,9 @@ from app.database import Base
 class BacktestRun(Base):
     __tablename__ = "backtest_runs"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
     holding_days: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -28,7 +30,9 @@ class BacktestRun(Base):
 class BacktestResult(Base):
     __tablename__ = "backtest_results"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
     run_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("backtest_runs.id"), nullable=False)
     stock_id: Mapped[str] = mapped_column(String(10), nullable=False)
     stock_name: Mapped[str | None] = mapped_column(String(100))
