@@ -1,6 +1,10 @@
 from datetime import date
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.services import analyzer, signal_detector
 
 router = APIRouter()
 
@@ -16,7 +20,13 @@ def trigger_single_crawl(etf_id: str):
     raise NotImplementedError("TODO: dispatch crawl_single_etf")
 
 
-@router.post("/analyze/{target_date}", status_code=202)
-def trigger_analyze(target_date: date):
-    """手動重跑分析。"""
-    raise NotImplementedError("TODO: dispatch analyze_consensus + detect_signals")
+@router.post("/analyze/{target_date}")
+def trigger_analyze(target_date: date, db: Session = Depends(get_db)) -> dict:
+    """讀取 target_date 與 target_date-1 的持股 → 跨 ETF 彙總 → 寫入 consensus_scores。"""
+    return analyzer.analyze_date(db, target_date)
+
+
+@router.post("/detect-signals/{target_date}")
+def trigger_detect_signals(target_date: date, db: Session = Depends(get_db)) -> dict:
+    """掃描 target_date 的 consensus_scores，將新觸發的訊號寫入 signal_records。"""
+    return signal_detector.detect_date(db, target_date)

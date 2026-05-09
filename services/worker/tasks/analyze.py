@@ -1,28 +1,33 @@
-"""分析任務（規格 §8、§9、§10、§21）。"""
-from datetime import date
+"""分析任務（規格 §8、§9、§10、§21）。
+
+Worker 是排程器，實際分析邏輯在 web container 的 /api/admin/analyze/{date}
+與 /api/admin/detect-signals/{date}（避免 worker / web 重複維護同一份計算與 ORM）。
+"""
+import os
+from datetime import date as _date
+
+import httpx
 
 from celery_app import celery_app
 
 
-@celery_app.task(name="tasks.analyze.analyze_consensus")
-def analyze_consensus(target_date: str) -> dict:
-    """計算 target_date 的加碼 + 減碼共識分數，寫入 consensus_scores。
+WEB_URL = os.environ.get("WEB_URL", "http://web:8000")
+HTTP_TIMEOUT = 60.0
 
-    步驟：
-    1. 取出 target_date 與 target_date-1 的 holding_records
-    2. 對每檔 ETF 的每檔持股，跑三步驟主動加減碼計算
-    3. 處理新建倉 / 清倉 / 除權息（spec §8.2）
-    4. 跨 ETF 彙總，產出每檔股票的廣度 / 深度分數
-    5. 計算連續加減碼天數（滑動窗口）
-    6. 寫入 consensus_scores（同 date+stock_id 採 upsert）
-    """
-    raise NotImplementedError("TODO")
+
+@celery_app.task(name="tasks.analyze.analyze_consensus")
+def analyze_consensus(target_date: str | None = None) -> dict:
+    """呼叫 web 的 analyze 端點計算共識分數（規格 §8）。"""
+    target_date = target_date or _date.today().isoformat()
+    resp = httpx.post(f"{WEB_URL}/api/admin/analyze/{target_date}", timeout=HTTP_TIMEOUT)
+    resp.raise_for_status()
+    return resp.json()
 
 
 @celery_app.task(name="tasks.analyze.detect_signals")
-def detect_signals(target_date: str) -> dict:
-    """比對 system_config 門檻，決定 signal_tag / risk_tag，寫入 signal_records。
-
-    僅針對「當日新觸發」的訊號寫入（避免重複）。
-    """
-    raise NotImplementedError("TODO")
+def detect_signals(target_date: str | None = None) -> dict:
+    """呼叫 web 的 detect-signals 端點寫入 signal_records（規格 §13.3）。"""
+    target_date = target_date or _date.today().isoformat()
+    resp = httpx.post(f"{WEB_URL}/api/admin/detect-signals/{target_date}", timeout=HTTP_TIMEOUT)
+    resp.raise_for_status()
+    return resp.json()
