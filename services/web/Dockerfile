@@ -1,8 +1,22 @@
+# Stage 1: build Vue frontend
+FROM node:22-alpine AS frontend-builder
+
+WORKDIR /build
+
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+COPY frontend/ ./
+RUN npm run build
+
+
+# Stage 2: backend + bundled static assets
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    STATIC_DIR=/app/static
 
 WORKDIR /app
 
@@ -13,7 +27,12 @@ RUN apt-get update \
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-COPY . .
+COPY app ./app
+COPY migrations ./migrations
+COPY alembic.ini ./
+
+# Built frontend (index.html + assets/) goes here; FastAPI serves at /
+COPY --from=frontend-builder /build/dist ./static
 
 EXPOSE 8000
 
