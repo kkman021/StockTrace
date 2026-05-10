@@ -2,11 +2,16 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import ARRAY, BigInteger, Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, func
+from sqlalchemy import ARRAY, JSON, BigInteger, Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
+
+
+# 跨資料庫相容：production (PG) 用 ARRAY(String) / JSONB；測試 (SQLite) 退回 JSON
+TARGET_STOCKS_TYPE = ARRAY(String).with_variant(JSON, "sqlite")
+PRICE_SERIES_TYPE = JSONB().with_variant(JSON, "sqlite")
 
 
 class BacktestRun(Base):
@@ -21,7 +26,7 @@ class BacktestRun(Base):
     breadth_threshold: Mapped[Decimal] = mapped_column(Numeric(5, 4), nullable=False)
     depth_threshold: Mapped[Decimal] = mapped_column(Numeric(5, 4), nullable=False)
     consecutive_days: Mapped[int] = mapped_column(Integer, nullable=False)
-    target_stocks: Mapped[list[str] | None] = mapped_column(ARRAY(String))
+    target_stocks: Mapped[list[str] | None] = mapped_column(TARGET_STOCKS_TYPE)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -46,5 +51,5 @@ class BacktestResult(Base):
     invalid_reason: Mapped[str | None] = mapped_column(String(100))
     breadth_score: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))
     depth_score: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))
-    price_series: Mapped[Any | None] = mapped_column(JSONB)
+    price_series: Mapped[Any | None] = mapped_column(PRICE_SERIES_TYPE)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

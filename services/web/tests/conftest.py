@@ -1,7 +1,7 @@
 """共用測試 fixtures：in-memory SQLite + FastAPI TestClient。
 
-注意：backtest_runs / backtest_results 使用 PG-only 型別（ARRAY、JSONB），
-此 fixture 不建立這兩張表。涉及它們的測試請改用實體 PG 整合測試。
+backtest_runs / backtest_results 在生產環境用 PG 的 ARRAY/JSONB，
+測試環境透過 with_variant(JSON, "sqlite") 退回 JSON，整套 schema 都可在 SQLite 建表。
 """
 import pytest
 from fastapi.testclient import TestClient
@@ -21,6 +21,8 @@ SQLITE_COMPATIBLE_TABLES = (
     "signal_records",
     "system_config",
     "crawl_logs",
+    "backtest_runs",
+    "backtest_results",
 )
 
 
