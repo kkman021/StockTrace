@@ -7,9 +7,12 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
       - CRAWLER_URL=http://crawler:8001
+      - OPENSEARCH_URL=http://opensearch:9200
+      - NOTIFICATION_CHANNELS=${NOTIFICATION_CHANNELS:-web}
     depends_on:
       - db
       - redis
+      - opensearch
     volumes:
       - ./config:/app/config:ro
       - ./services/web/app:/app/app
@@ -50,6 +53,13 @@ services:
     volumes:
       - playwright-cache:/ms-playwright
 
+  ui:
+    build: ./services/ui
+    ports:
+      - "${UI_PORT:-5173}:80"
+    depends_on:
+      - web
+
   db:
     image: postgres:16
     environment:
@@ -64,7 +74,22 @@ services:
     volumes:
       - redis-data:/data
 
+  opensearch:
+    image: opensearchproject/opensearch:2.17.0
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+
 volumes:
   postgres-data:
   redis-data:
   playwright-cache:
+  opensearch-data:

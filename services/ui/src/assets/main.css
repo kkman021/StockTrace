@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .card {
+    @apply bg-white rounded-lg shadow-sm border border-slate-200 p-4;
+  }
+
+  .btn {
+    @apply px-3 py-1.5 rounded font-medium text-sm transition-colors;
+  }
+
+  .btn-primary {
+    @apply btn bg-brand-600 text-white hover:bg-brand-700;
+  }
+
+  .btn-ghost {
+    @apply btn text-slate-700 hover:bg-slate-100;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+  }
+
+  .badge-add { @apply badge bg-emerald-100 text-emerald-700; }
+  .badge-reduce { @apply badge bg-rose-100 text-rose-700; }
+  .badge-light { @apply badge bg-sky-100 text-sky-700; }
+  .badge-playwright { @apply badge bg-amber-100 text-amber-700; }
+  .badge-success { @apply badge bg-emerald-100 text-emerald-700; }
+  .badge-failed { @apply badge bg-rose-100 text-rose-700; }
+}
