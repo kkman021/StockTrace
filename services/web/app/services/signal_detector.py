@@ -22,6 +22,7 @@ from app.services.notification import (
     get_default_channel,
 )
 from app.services.reduction import TAG_RISK_ALERT, TAG_WATCH, risk_tag
+from app.services.search import SignalDoc, get_default_client as get_search_client
 
 
 SIGNAL_TYPE_ADD = "add"
@@ -63,6 +64,7 @@ def detect_date(db: Session, target_date: date) -> dict:
     """
     thr = _read_thresholds(db)
     channel = get_default_channel()
+    search = get_search_client()
 
     rows = db.execute(
         select(ConsensusScore).where(ConsensusScore.date == target_date)
@@ -92,18 +94,30 @@ def detect_date(db: Session, target_date: date) -> dict:
             result = db.execute(stmt)
             if result.rowcount:
                 new_signals += 1
+                summary = _summary(row.stock_id, row.stock_name, add_tag)
                 channel.send(
                     NotificationEvent(
                         stock_id=row.stock_id,
                         stock_name=row.stock_name,
                         signal_type=SIGNAL_TYPE_ADD,
                         signal_tag=add_tag,
-                        summary=_summary(row.stock_id, row.stock_name, add_tag),
+                        summary=summary,
                         breadth_score=breadth,
                         depth_score=depth,
                         consecutive_days=consec,
                     )
                 )
+                search.index_signal(SignalDoc(
+                    date=str(target_date),
+                    stock_id=row.stock_id,
+                    stock_name=row.stock_name,
+                    signal_type=SIGNAL_TYPE_ADD,
+                    signal_tag=add_tag,
+                    breadth_score=breadth,
+                    depth_score=depth,
+                    consecutive_days=consec,
+                    summary=summary,
+                ))
 
         red_breadth = float(row.reduction_breadth or 0)
         red_consec = int(row.reduction_consec or 0)
@@ -122,18 +136,30 @@ def detect_date(db: Session, target_date: date) -> dict:
             result = db.execute(stmt)
             if result.rowcount:
                 new_signals += 1
+                summary = _summary(row.stock_id, row.stock_name, red_tag)
                 channel.send(
                     NotificationEvent(
                         stock_id=row.stock_id,
                         stock_name=row.stock_name,
                         signal_type=SIGNAL_TYPE_REDUCE,
                         signal_tag=red_tag,
-                        summary=_summary(row.stock_id, row.stock_name, red_tag),
+                        summary=summary,
                         breadth_score=red_breadth,
                         depth_score=None,
                         consecutive_days=red_consec,
                     )
                 )
+                search.index_signal(SignalDoc(
+                    date=str(target_date),
+                    stock_id=row.stock_id,
+                    stock_name=row.stock_name,
+                    signal_type=SIGNAL_TYPE_REDUCE,
+                    signal_tag=red_tag,
+                    breadth_score=red_breadth,
+                    depth_score=None,
+                    consecutive_days=red_consec,
+                    summary=summary,
+                ))
 
     db.commit()
     return {"date": str(target_date), "new_signals": new_signals, "consensus_rows_scanned": len(rows)}
